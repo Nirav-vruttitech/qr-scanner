@@ -1,5 +1,6 @@
 import QrScanner from "qr-scanner";
 import { useEffect, useRef, useState } from "react";
+import somfyLogo from "../assets/somfy_logo.svg";
 
 interface QRScannerProps {
   onScan: (result: string) => void;
@@ -11,11 +12,135 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const scannerRef = useRef<QrScanner | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [hasCamera, setHasCamera] = useState(true);
+  const [selectedCamera, setSelectedCamera] = useState<string | undefined>("");
+  const [isFlashOn, setIsFlashOn] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(1);
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
+  const scanAttemptRef = useRef<number>(0);
+  const zoomIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const videoStreamRef = useRef<MediaStream | null>(null);
+
+  // Function to fetch and select the best camera
+  const fetchBestCamera = async () => {
+    try {
+      const cameras = await QrScanner.listCameras(true);
+      console.log("📷 Available cameras:", cameras);
+
+      // Filter cameras that include "back" in the label (rear cameras)
+      const backCameras = cameras.filter((camera) => camera.label.toLowerCase().includes("back"));
+
+      // Sort cameras by number in label (higher number = better quality usually)
+      const sortedCameras = backCameras.sort((a, b) => {
+        const matchA = a.label.match(/\d+/);
+        const matchB = b.label.match(/\d+/);
+        const numberA = matchA ? parseInt(matchA[0], 10) : Infinity;
+        const numberB = matchB ? parseInt(matchB[0], 10) : Infinity;
+
+        if (numberA === numberB) {
+          return a.label.localeCompare(b.label);
+        }
+        return numberA - numberB;
+      });
+
+      // Select the best camera (first sorted back camera or fallback to environment)
+      if (sortedCameras.length > 0) {
+        setSelectedCamera(sortedCameras[0].id);
+        console.log("✅ Selected camera:", sortedCameras[0].label);
+      } else {
+        setSelectedCamera("environment"); // Fallback to default back camera
+        console.log("⚠️ No back camera found, using 'environment' as fallback");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching cameras:", error);
+      setSelectedCamera("environment");
+    }
+  };
+
+  // Auto-zoom functionality - increases zoom gradually if QR not detected
+  const applyZoom = async (zoomLevel: number) => {
+    if (!videoRef.current || !videoRef.current.srcObject) return;
+
+    const stream = videoRef.current.srcObject as MediaStream;
+    const track = stream.getVideoTracks()[0];
+    const capabilities = track.getCapabilities() as any;
+
+    if (capabilities.zoom) {
+      try {
+        await track.applyConstraints({
+          advanced: [{ zoom: zoomLevel } as any],
+        });
+        setCurrentZoom(zoomLevel);
+        console.log(`🔍 Zoom applied: ${zoomLevel}x`);
+      } catch (error) {
+        console.error("❌ Error applying zoom:", error);
+      }
+    }
+  };
+
+  // Auto-flash functionality - turns on flash in low light conditions
+  const toggleAutoFlash = async (enable: boolean) => {
+    if (!scannerRef.current) return;
+
+    try {
+      if (enable && !isFlashOn) {
+        await scannerRef.current.turnFlashOn();
+        setIsFlashOn(true);
+        console.log("💡 Flash turned ON automatically");
+      } else if (!enable && isFlashOn) {
+        await scannerRef.current.turnFlashOff();
+        setIsFlashOn(false);
+        console.log("💡 Flash turned OFF");
+      }
+    } catch (error) {
+      console.error("❌ Error toggling flash:", error);
+    }
+  };
+
+  // Auto-adjust zoom based on scan attempts - Smooth gradual zoom
+  const startAutoZoom = () => {
+    // Clear any existing interval
+    if (zoomIntervalRef.current) {
+      clearInterval(zoomIntervalRef.current);
+    }
+
+    let zoomLevel = 1.0;
+    scanAttemptRef.current = 0;
+
+    // Gradually increase zoom every 2 seconds for smoother experience
+    zoomIntervalRef.current = setInterval(() => {
+      scanAttemptRef.current += 1;
+
+      // Smooth zoom progression: 1.0 -> 1.2 -> 1.4 -> 1.6 -> 1.8 -> 2.0 -> 2.2 -> 2.4 -> 2.6 -> 2.8 -> 3.0
+      if (scanAttemptRef.current <= 10) {
+        zoomLevel = 1.0 + scanAttemptRef.current * 0.2; // Increment by 0.2x each time
+        applyZoom(Math.min(zoomLevel, 3.0)); // Cap at 3.0x
+      }
+
+      // Turn on flash after 5 attempts (10 seconds) if still not detected
+      if (scanAttemptRef.current === 5) {
+        toggleAutoFlash(true);
+      }
+    }, 2000); // Check every 2 seconds for smoother progression
+  };
+
+  // Stop auto-zoom and reset
+  const stopAutoZoom = () => {
+    if (zoomIntervalRef.current) {
+      clearInterval(zoomIntervalRef.current);
+      zoomIntervalRef.current = null;
+    }
+    scanAttemptRef.current = 0;
+    applyZoom(1); // Reset to default zoom
+    toggleAutoFlash(false); // Turn off flash
+  };
 
   useEffect(() => {
-    if (!videoRef.current) return;
+    fetchBestCamera();
+  }, []);
+
+  useEffect(() => {
+    if (!videoRef.current || !selectedCamera) return;
 
     const qrScanner = new QrScanner(
       videoRef.current,
@@ -32,8 +157,13 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
           lastScanTimeRef.current = now;
 
           console.log("✅ QR Code Successfully Detected:", result.data);
-          alert(`✅ Successfully Scanned!\n\nQR Code Value:\n${result.data}`);
+
+          // Stop auto-zoom when QR is detected
+          stopAutoZoom();
+
+          // alert(`✅ Successfully Scanned!\n\nQR Code Value:\n${result.data}`);
           onScan(result.data);
+          setIsScanning(false);
         } else {
           console.log("⏭️ Skipping duplicate scan");
         }
@@ -42,7 +172,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         returnDetailedScanResult: true,
         highlightScanRegion: true,
         highlightCodeOutline: true,
-        preferredCamera: "environment",
+        preferredCamera: selectedCamera,
       }
     );
 
@@ -51,7 +181,6 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
     QrScanner.hasCamera().then((hasCamera) => {
       setHasCamera(hasCamera);
       if (!hasCamera) {
-        alert("❌ No Camera Found!\n\nPlease check if your device has a camera and permissions are granted.");
         if (onError) {
           onError("No camera found on this device");
         }
@@ -63,22 +192,31 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
       qrScanner.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedCamera]);
 
   useEffect(() => {
     if (scannerRef.current) {
       if (isScanning) {
-        scannerRef.current.start().catch((err) => {
-          console.error("Error starting scanner:", err);
-          const errorMessage = "Failed to start camera. Please check permissions.";
-          alert(`❌ Camera Error!\n\n${errorMessage}\n\nDetails: ${err.message || err}`);
-          if (onError) {
-            onError(errorMessage);
-          }
-          setIsScanning(false);
-        });
+        scannerRef.current
+          .start()
+          .then(() => {
+            // Start auto-zoom after scanner starts
+            startAutoZoom();
+            console.log("📷 Scanner started with auto-zoom enabled");
+          })
+          .catch((err) => {
+            console.error("Error starting scanner:", err);
+            const errorMessage = "Failed to start camera. Please check permissions.";
+
+            if (onError) {
+              onError(errorMessage);
+            }
+            setIsScanning(false);
+          });
       } else {
         scannerRef.current.stop();
+        // Stop auto-zoom when scanner stops
+        stopAutoZoom();
       }
     }
   }, [isScanning, onError]);
@@ -93,27 +231,59 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
     setIsScanning(false);
   };
 
+  const handleToggleScanning = () => {
+    if (isScanning) {
+      handleStopScanning();
+    } else {
+      handleStartScanning();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+    <div className="max-h-dvh bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full mx-auto" style={{ maxWidth: "420px" }}>
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl mb-4 shadow-xl">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-              />
-            </svg>
+          <div className="inline-flex items-center justify-center w-32 h-32 mb-2">
+            <img src={somfyLogo} alt="Somfy Logo" className="w-32 h-32 text-white object-fill" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">QR Code Scanner</h1>
-          <p className="text-gray-600 text-base mb-4">Scan any QR code instantly</p>
+          {/* <p className="text-gray-600 text-base mb-4">Scan any QR code instantly</p> */}
           <div className="inline-flex items-center gap-2 bg-white px-5 py-2.5 rounded-full shadow-lg ">
             <div className={`w-3 h-3  ${isScanning ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
             <p className={`text-sm font-bold ${isScanning ? "text-green-600" : "text-gray-700"}`}>{isScanning ? "Scanning..." : "Ready"}</p>
           </div>
+
+          {/* Auto-zoom and Flash Indicators */}
+          {isScanning && (
+            <div className="flex items-center justify-center gap-3 mt-3">
+              {currentZoom > 1 && (
+                <div className="flex items-center gap-1 bg-blue-100 px-3 py-1 rounded-full">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                    />
+                  </svg>
+                  <span className="text-xs font-semibold text-blue-700">{currentZoom.toFixed(1)}x</span>
+                </div>
+              )}
+              {isFlashOn && (
+                <div className="flex items-center gap-1.5 bg-yellow-100 px-3 py-1.5 rounded-full transition-all">
+                  <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="text-xs font-semibold text-yellow-700">Flash</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Camera Container */}
@@ -174,26 +344,16 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             )}
           </div>
 
-          {/* Buttons - No Icons, Clean Design */}
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          {/* Button - Single Toggle Button */}
+          <div className="mt-5">
             <button
-              onClick={handleStartScanning}
-              disabled={!hasCamera || isScanning}
-              className={`py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-md bg-blue-500 text-white hover:bg-blue-600 active:scale-95 hover:shadow-lg ${
-                isScanning || !hasCamera ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              onClick={handleToggleScanning}
+              disabled={!hasCamera}
+              className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-md ${
+                isScanning ? "bg-secondary text-white hover:opacity-90" : "bg-buttonColor text-white "
+              } active:scale-95 hover:shadow-lg ${!hasCamera ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              {isScanning ? "Scanning..." : "Start Scan"}
-            </button>
-
-            <button
-              onClick={handleStopScanning}
-              disabled={!isScanning}
-              className={`py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-md bg-red-300 text-red-900 hover:bg-red-400 active:scale-95 hover:shadow-lg ${
-                !isScanning ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              Stop Scan
+              {isScanning ? "Stop Scan" : "Start Scan"}
             </button>
           </div>
         </div>

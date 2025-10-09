@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Top Left Corner -->
+  <rect x="3" y="3" width="7" height="7" rx="1"/>
+  <rect x="5" y="5" width="3" height="3"/>
+  
+  <!-- Top Right Corner -->
+  <rect x="14" y="3" width="7" height="7" rx="1"/>
+  <rect x="16" y="5" width="3" height="3"/>
+  
+  <!-- Bottom Left Corner -->
+  <rect x="3" y="14" width="7" height="7" rx="1"/>
+  <rect x="5" y="16" width="3" height="3"/>
+  
+  <!-- Scan Line (animated area) -->
+  <line x1="14" y1="14" x2="21" y2="14" stroke-width="2"/>
+  <line x1="14" y1="17" x2="18" y2="17" stroke-width="2"/>
+  <line x1="14" y1="20" x2="21" y2="20" stroke-width="2"/>
+  <line x1="20" y1="14" x2="20" y2="21" stroke-width="2"/>
+</svg>

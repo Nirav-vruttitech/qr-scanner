@@ -69,12 +69,7 @@ function App() {
       console.log("Scanned Result:", result);
 
       setIsProcessing(true);
-      setLastScannedValue(result); // Save the scanned value
-
-      console.log("LastScannedValue set to:", result);
-
-      // Show alert to confirm scan
-      alert(`QR Code Scanned: ${result}`);
+      setLastScannedValue(result);
 
       await makeAPICall(result);
 
@@ -85,11 +80,11 @@ function App() {
 
   const handleError = useCallback((error: string) => {
     console.error("Scanner Error:", error);
-    alert(`❌ Scanner Error!\n\n${error}`);
+    // alert(`❌ Scanner Error!\n\n${error}`);
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-dvh bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <QRScannerComponent onScan={handleScan} onError={handleError} />
 
       {/* Last Scanned Value Display */}
@@ -123,7 +118,7 @@ function App() {
       )}
 
       {/* Scan History - Clean Design */}
-      {scanHistory.length > 0 && (
+      {/* {scanHistory.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-64 overflow-hidden z-40 border-t-2 border-gray-200">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -188,7 +183,7 @@ function App() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
