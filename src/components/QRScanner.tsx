@@ -19,7 +19,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const lastScanTimeRef = useRef<number>(0);
   const scanAttemptRef = useRef<number>(0);
   const zoomIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const videoStreamRef = useRef<MediaStream | null>(null);
+  // const videoStreamRef = useRef<MediaStream | null>(null);
 
   // Function to fetch and select the best camera
   const fetchBestCamera = async () => {

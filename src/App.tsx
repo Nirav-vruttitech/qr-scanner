@@ -13,6 +13,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastScannedValue, setLastScannedValue] = useState<string>("");
 
+  console.log("scanHistory: ", scanHistory);
   // API call function - Replace with your actual API endpoint
   const makeAPICall = async (qrData: string): Promise<void> => {
     try {
