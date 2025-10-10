@@ -1,6 +1,7 @@
 import QrScanner from "qr-scanner";
 import { useEffect, useRef, useState } from "react";
 import somfyLogo from "../assets/somfy_logo.svg";
+import { BiSolidTorch } from "react-icons/bi";
 
 interface QRScannerProps {
   onScan: (result: string) => void;
@@ -12,11 +13,14 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const scannerRef = useRef<QrScanner | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [hasCamera, setHasCamera] = useState(true);
+  const [hasFlash, setHasFlash] = useState(false);
   const [selectedCamera, setSelectedCamera] = useState<string | undefined>("");
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(1);
+  const [manualZoom, setManualZoom] = useState(1);
   const [isAutoFlash, setIsAutoFlash] = useState(true);
   const [isAutoZoomEnabled, setIsAutoZoomEnabled] = useState(true);
+  const [showZoomTooltip, setShowZoomTooltip] = useState(false);
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
   const scanAttemptRef = useRef<number>(0);
@@ -133,6 +137,17 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
     applyZoom(newZoom);
   };
 
+  // Handle zoom slider change
+  const handleZoomSliderChange = (value: number) => {
+    setManualZoom(value);
+
+    // If scanning, apply zoom immediately and disable auto-zoom
+    if (isScanning) {
+      setIsAutoZoomEnabled(false);
+      applyZoom(value);
+    }
+  };
+
   // Reset zoom to 1.0x and restart auto-zoom from beginning
   const handleResetZoom = () => {
     if (!isScanning) return;
@@ -145,6 +160,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
     // Reset zoom to 1.0x
     applyZoom(1.0);
+    setManualZoom(1.0);
 
     // Reset scan attempts counter
     scanAttemptRef.current = 0;
@@ -158,9 +174,6 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
   // Auto-adjust zoom based on scan attempts - Smooth gradual zoom
   const startAutoZoom = () => {
-    // Only start auto-zoom if it's enabled
-    if (!isAutoZoomEnabled) return;
-
     // Clear any existing interval
     if (zoomIntervalRef.current) {
       clearInterval(zoomIntervalRef.current);
@@ -171,7 +184,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
     // Gradually increase zoom every 2 seconds for smoother experience
     zoomIntervalRef.current = setInterval(() => {
-      // Stop if auto-zoom was disabled
+      // Check the current state - if auto-zoom was disabled, stop
       if (!isAutoZoomEnabled) {
         if (zoomIntervalRef.current) {
           clearInterval(zoomIntervalRef.current);
@@ -185,7 +198,8 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
       // Smooth zoom progression: 1.0 -> 1.2 -> 1.4 -> 1.6 -> 1.8 -> 2.0 -> 2.2 -> 2.4 -> 2.6 -> 2.8 -> 3.0
       if (scanAttemptRef.current <= 10) {
         zoomLevel = 1.0 + scanAttemptRef.current * 0.2; // Increment by 0.2x each time
-        applyZoom(Math.min(zoomLevel, 3.0)); // Cap at 3.0x
+        const cappedZoom = Math.min(zoomLevel, 3.0);
+        applyZoom(cappedZoom); // Cap at 3.0x and update currentZoom state
       }
 
       // Turn on flash after 5 attempts (10 seconds) if still not detected
@@ -203,6 +217,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
     }
     scanAttemptRef.current = 0;
     applyZoom(1); // Reset to default zoom
+    setManualZoom(1); // Reset manual zoom slider
     toggleAutoFlash(false); // Turn off flash
     setIsAutoZoomEnabled(true); // Re-enable auto-zoom for next scan
   };
@@ -258,6 +273,18 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         }
       }
     });
+
+    // Check if flash is available
+    qrScanner
+      .hasFlash()
+      .then((hasFlashSupport) => {
+        setHasFlash(hasFlashSupport);
+        console.log("💡 Flash support:", hasFlashSupport);
+      })
+      .catch(() => {
+        setHasFlash(false);
+        console.log("💡 Flash not supported");
+      });
 
     return () => {
       qrScanner.stop();
@@ -327,9 +354,8 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
           </div>
 
           {/* Auto-zoom and Flash Indicators */}
-          {isScanning && (
+          {false && (
             <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-              {/* Reset Zoom Button - Shows when zoom > 2.0 */}
               {currentZoom > 2.0 && (
                 <button
                   onClick={handleResetZoom}
@@ -450,17 +476,69 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             )}
           </div>
 
-          {/* Button - Single Toggle Button */}
-          <div className="mt-4">
+          {/* Zoom Slider - Always visible */}
+          <div className="mt-4 px-1">
+            <label className="text-xs font-semibold text-gray-600 mb-2 block">Zoom</label>
+            <div className="relative">
+              {/* Tooltip */}
+              {showZoomTooltip && (
+                <div
+                  className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-lg z-10"
+                  style={{
+                    left: `${(((isAutoZoomEnabled && isScanning ? currentZoom : manualZoom) - 1) / 2) * 100}%`,
+                  }}
+                >
+                  {(isAutoZoomEnabled && isScanning ? currentZoom : manualZoom).toFixed(1)}x
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-blue-600 rotate-45"></div>
+                </div>
+              )}
+
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.1"
+                value={isAutoZoomEnabled && isScanning ? currentZoom : manualZoom}
+                onChange={(e) => handleZoomSliderChange(parseFloat(e.target.value))}
+                onMouseDown={() => setShowZoomTooltip(true)}
+                onMouseUp={() => setShowZoomTooltip(false)}
+                onTouchStart={() => setShowZoomTooltip(true)}
+                onTouchEnd={() => setShowZoomTooltip(false)}
+                className="w-full h-2 bg-gradient-to-r from-blue-200 to-blue-400 rounded-lg appearance-none cursor-pointer slider-thumb"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                    (((isAutoZoomEnabled && isScanning ? currentZoom : manualZoom) - 1) / 2) * 100
+                  }%, #dbeafe ${(((isAutoZoomEnabled && isScanning ? currentZoom : manualZoom) - 1) / 2) * 100}%, #dbeafe 100%)`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Button - Single Toggle Button with Flash */}
+          <div className="mt-4 flex gap-2">
             <button
               onClick={handleToggleScanning}
               disabled={!hasCamera}
-              className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm transition-all shadow-md ${
+              className={`${hasFlash ? "flex-1" : "w-full"} py-2.5 px-4 rounded-xl font-semibold text-sm transition-all shadow-md ${
                 isScanning ? "bg-red-500 text-white hover:opacity-90" : "bg-buttonColor text-white "
               } active:scale-95 hover:shadow-lg ${!hasCamera ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isScanning ? "Stop Scan" : "Start Scan"}
             </button>
+
+            {/* Flash/Torch Button - Only show if flash is available */}
+            {hasFlash && (
+              <button
+                onClick={handleManualFlashToggle}
+                disabled={!hasCamera || !isScanning}
+                className={`p-2.5 rounded-xl font-semibold text-sm transition-all shadow-md ${
+                  isFlashOn ? "bg-yellow-500 text-white hover:opacity-90" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                } active:scale-95 hover:shadow-lg ${!hasCamera || !isScanning ? "opacity-50 cursor-not-allowed" : ""}`}
+                title={isFlashOn ? "Turn Flash Off" : "Turn Flash On"}
+              >
+                <BiSolidTorch size={20} />
+              </button>
+            )}
           </div>
         </div>
       </div>
