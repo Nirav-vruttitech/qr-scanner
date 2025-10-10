@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:single": "node build-single.js"
   },
   "dependencies": {
     "qr-scanner": "^1.4.2",
