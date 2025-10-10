@@ -16,6 +16,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(1);
   const [isAutoFlash, setIsAutoFlash] = useState(true);
+  const [isAutoZoomEnabled, setIsAutoZoomEnabled] = useState(true);
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
   const scanAttemptRef = useRef<number>(0);
@@ -120,8 +121,46 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
     }
   };
 
+  // Manual zoom control - User can increase zoom
+  const handleManualZoom = () => {
+    if (!isScanning) return;
+
+    // Disable auto-zoom when user manually zooms
+    setIsAutoZoomEnabled(false);
+
+    // Increase zoom by 0.5x steps, max 3.0x
+    const newZoom = Math.min(currentZoom + 0.5, 3.0);
+    applyZoom(newZoom);
+  };
+
+  // Reset zoom to 1.0x and restart auto-zoom from beginning
+  const handleResetZoom = () => {
+    if (!isScanning) return;
+
+    // Clear the existing zoom interval
+    if (zoomIntervalRef.current) {
+      clearInterval(zoomIntervalRef.current);
+      zoomIntervalRef.current = null;
+    }
+
+    // Reset zoom to 1.0x
+    applyZoom(1.0);
+
+    // Reset scan attempts counter
+    scanAttemptRef.current = 0;
+
+    // Re-enable auto-zoom and restart it from the beginning
+    setIsAutoZoomEnabled(true);
+
+    // Restart auto-zoom process
+    startAutoZoom();
+  };
+
   // Auto-adjust zoom based on scan attempts - Smooth gradual zoom
   const startAutoZoom = () => {
+    // Only start auto-zoom if it's enabled
+    if (!isAutoZoomEnabled) return;
+
     // Clear any existing interval
     if (zoomIntervalRef.current) {
       clearInterval(zoomIntervalRef.current);
@@ -132,6 +171,15 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
     // Gradually increase zoom every 2 seconds for smoother experience
     zoomIntervalRef.current = setInterval(() => {
+      // Stop if auto-zoom was disabled
+      if (!isAutoZoomEnabled) {
+        if (zoomIntervalRef.current) {
+          clearInterval(zoomIntervalRef.current);
+          zoomIntervalRef.current = null;
+        }
+        return;
+      }
+
       scanAttemptRef.current += 1;
 
       // Smooth zoom progression: 1.0 -> 1.2 -> 1.4 -> 1.6 -> 1.8 -> 2.0 -> 2.2 -> 2.4 -> 2.6 -> 2.8 -> 3.0
@@ -156,6 +204,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
     scanAttemptRef.current = 0;
     applyZoom(1); // Reset to default zoom
     toggleAutoFlash(false); // Turn off flash
+    setIsAutoZoomEnabled(true); // Re-enable auto-zoom for next scan
   };
 
   useEffect(() => {
@@ -242,6 +291,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         stopAutoZoom();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScanning, onError]);
 
   const handleStartScanning = () => {
@@ -278,9 +328,33 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
           {/* Auto-zoom and Flash Indicators */}
           {isScanning && (
-            <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+              {/* Reset Zoom Button - Shows when zoom > 2.0 */}
+              {currentZoom > 2.0 && (
+                <button
+                  onClick={handleResetZoom}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all bg-yellow-100 hover:bg-yellow-200 active:scale-95"
+                >
+                  <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span className="text-xs font-semibold text-yellow-700">Reset Zoom</span>
+                </button>
+              )}
+
               {currentZoom > 1 && (
-                <div className="flex items-center gap-1 bg-blue-100 px-3 py-1 rounded-full">
+                <button
+                  onClick={handleManualZoom}
+                  disabled={currentZoom >= 3.0}
+                  className={`flex items-center gap-1 bg-blue-100 px-3 py-1 rounded-full transition-all hover:bg-blue-200 active:scale-95 ${
+                    currentZoom >= 3.0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  }`}
+                >
                   <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -290,8 +364,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                     />
                   </svg>
                   <span className="text-xs font-semibold text-blue-700">{currentZoom.toFixed(1)}x</span>
-                </div>
+                </button>
               )}
+
               {/* Flash Toggle Button */}
               <button
                 onClick={handleManualFlashToggle}
