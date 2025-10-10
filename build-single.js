@@ -9,8 +9,16 @@ const finalDir = path.resolve("final");
 console.log("🛠️  Building project...");
 execSync("npm run build", { stdio: "inherit" });
 
-// 2️⃣ Create final folder
-if (!fs.existsSync(finalDir)) fs.mkdirSync(finalDir);
+// 2️⃣ Create and clean final folder
+if (fs.existsSync(finalDir)) {
+  // Clean existing files
+  const existingFiles = fs.readdirSync(finalDir);
+  existingFiles.forEach((file) => {
+    fs.unlinkSync(path.join(finalDir, file));
+  });
+} else {
+  fs.mkdirSync(finalDir);
+}
 
 // 3️⃣ Find built files
 const htmlFile = path.join(buildDir, "index.html");
@@ -37,17 +45,19 @@ if (cssFile) {
   fs.copyFileSync(path.join(assetsDir, cssFile), path.join(finalDir, "style.css"));
 }
 
-// 6️⃣ Copy and inline the worker file path in main JS
+// 6️⃣ Inline worker JS content into main JS and create single main.js
 if (mainJsFile) {
   let mainJs = fs.readFileSync(path.join(assetsDir, mainJsFile), "utf8");
 
-  // Replace worker file references to use the bundled worker filename
+  // Read and inline the worker file content
   if (workerJsFile) {
-    const workerFileName = "qr-scanner-worker.min.js";
-    fs.copyFileSync(path.join(assetsDir, workerJsFile), path.join(finalDir, workerFileName));
+    const workerJs = fs.readFileSync(path.join(assetsDir, workerJsFile), "utf8");
 
-    // Replace all references to the worker file with the new filename
-    mainJs = mainJs.replace(new RegExp(workerJsFile, "g"), `./${workerFileName}`);
+    // Create a data URL from the worker content
+    const workerDataUrl = `data:application/javascript;base64,${Buffer.from(workerJs).toString("base64")}`;
+
+    // Replace all references to the worker file with the data URL
+    mainJs = mainJs.replace(new RegExp(workerJsFile, "g"), workerDataUrl);
   }
 
   // Replace logo file references to use the renamed logo filename
@@ -56,8 +66,10 @@ if (mainJsFile) {
     mainJs = mainJs.replace(new RegExp(logoFile, "g"), logoFileName);
   }
 
-  fs.writeFileSync(path.join(finalDir, "script.js"), mainJs);
-} // 7️⃣ Copy logo SVG
+  fs.writeFileSync(path.join(finalDir, "main.js"), mainJs);
+}
+
+// 7️⃣ Copy logo SVG
 if (logoFile) {
   const logoFileName = "somfy_logo.svg";
   fs.copyFileSync(path.join(assetsDir, logoFile), path.join(finalDir, logoFileName));
@@ -70,7 +82,7 @@ let html = fs.readFileSync(path.join(finalDir, "index.html"), "utf8");
 html = html.replace(/\.\/assets\/.*?\.css/g, "./style.css");
 
 // Replace JS reference
-html = html.replace(/\.\/assets\/.*?\.js/g, "./script.js");
+html = html.replace(/\.\/assets\/.*?\.js/g, "./main.js");
 
 // Replace logo reference if it exists in HTML
 if (logoFile) {
@@ -88,7 +100,6 @@ if (fs.existsSync(faviconPath)) {
 console.log("\n✅ Done! Files created in 'final' folder:");
 console.log("  - index.html");
 console.log("  - style.css");
-console.log("  - script.js");
-if (workerJsFile) console.log("  - qr-scanner-worker.min.js");
+console.log("  - main.js");
 if (logoFile) console.log("  - somfy_logo.svg");
 console.log("\n🚀 Double-click index.html to open it in your browser!");
