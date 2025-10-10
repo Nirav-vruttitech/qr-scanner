@@ -2,13 +2,6 @@ import { useState, useCallback } from "react";
 import { Toaster, toast } from "sonner";
 import QRScannerComponent from "./components/QRScanner";
 
-interface ScanResult {
-  data: string;
-  timestamp: string;
-  status: "success" | "error";
-  message?: string;
-}
-
 // QR Code format regex - defined outside component to avoid re-creation
 const qrformat =
   /E:[ABCDEF0123456789]{12}%M:?[ABCDEF0123456789]{4}\$F:?[ABCDEF0123456789]{4}\$H:?(?<hostname>sfy_poe_[ABCDEF0123456789]{6})\$P:?(?<pin>[ABCDEF0123456789]{4})/;
@@ -18,6 +11,7 @@ function App() {
   // const [scanHistory, setScanHistory] = useState<ScanResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastScannedValue, setLastScannedValue] = useState<string>("");
+  console.log("lastScannedValue: ", lastScannedValue);
 
   const handleScan = useCallback(async (result: string) => {
     console.log("=== QR SCAN TRIGGERED ===");
