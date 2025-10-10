@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Toaster, toast } from "sonner";
 import QRScannerComponent from "./components/QRScanner";
 
 interface ScanResult {
@@ -8,76 +9,65 @@ interface ScanResult {
   message?: string;
 }
 
+// QR Code format regex - defined outside component to avoid re-creation
+const qrformat =
+  /E:[ABCDEF0123456789]{12}%M:?[ABCDEF0123456789]{4}\$F:?[ABCDEF0123456789]{4}\$H:?(?<hostname>sfy_poe_[ABCDEF0123456789]{6})\$P:?(?<pin>[ABCDEF0123456789]{4})/;
+
+const TOAST_DURATION = 3000;
 function App() {
-  const [scanHistory, setScanHistory] = useState<ScanResult[]>([]);
+  // const [scanHistory, setScanHistory] = useState<ScanResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastScannedValue, setLastScannedValue] = useState<string>("");
 
-  console.log("scanHistory: ", scanHistory);
-  // API call function - Replace with your actual API endpoint
-  const makeAPICall = async (qrData: string): Promise<void> => {
-    try {
-      // Replace this URL with your actual API endpoint
-      const response = await fetch("https://api.example.com/scan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          qrCode: qrData,
-          timestamp: new Date().toISOString(),
-        }),
-      });
+  const handleScan = useCallback(async (result: string) => {
+    console.log("=== QR SCAN TRIGGERED ===");
+    console.log("Scanned Result:", result);
 
-      if (!response.ok) {
-        throw new Error(`API call failed: ${response.statusText}`);
+    setLastScannedValue(result);
+    setIsProcessing(true);
+
+    // Validate QR code against regex pattern
+    const match = result.match(qrformat);
+
+    if (match && match.groups && match.groups.hostname && match.groups.pin) {
+      console.log("✅ QR Code matched successfully!");
+      console.log("Hostname:", match.groups.hostname);
+      console.log("PIN:", match.groups.pin);
+
+      // Copy PIN to clipboard and navigate to hostname in new tab
+      try {
+        await navigator.clipboard.writeText(match.groups.pin);
+        console.log("📋 PIN copied to clipboard:", match.groups.pin);
+
+        // Show success toast
+        toast.success("QR Code Scanned!", {
+          description: `PIN copied to clipboard. Opening ${match.groups.hostname}...`,
+          duration: TOAST_DURATION,
+        });
+      } catch (clipboardError) {
+        console.warn("⚠️ Failed to copy PIN to clipboard:", clipboardError);
+
+        // Show warning toast
+        toast.warning("QR Code Scanned!", {
+          description: `Opening ${match.groups.hostname}... (Clipboard access denied)`,
+          duration: TOAST_DURATION,
+        });
       }
 
-      const result = await response.json();
-      console.log("API Response:", result);
+      // Open hostname in new tab
+      window.open(`https://${match.groups.hostname}/`, "_self");
+    } else {
+      console.error("❌ QR Code does not match expected format");
 
-      // Add success result to history
-      setScanHistory((prev) => [
-        {
-          data: qrData,
-          timestamp: new Date().toLocaleString(),
-          status: "success",
-          message: "Successfully processed",
-        },
-        ...prev.slice(0, 9), // Keep only last 10 results
-      ]);
-    } catch (error) {
-      console.error("API call error:", error);
-
-      // Add error result to history
-      setScanHistory((prev) => [
-        {
-          data: qrData,
-          timestamp: new Date().toLocaleString(),
-          status: "error",
-          message: error instanceof Error ? error.message : "Unknown error",
-        },
-        ...prev.slice(0, 9),
-      ]);
+      // Show error toast
+      toast.error("Invalid QR Code", {
+        description: "Please scan a valid Somfy PoE motor QR code.",
+        duration: TOAST_DURATION,
+      });
     }
-  };
 
-  const handleScan = useCallback(
-    async (result: string) => {
-      // if (isProcessing) return; // Prevent multiple simultaneous API calls
-
-      console.log("=== QR SCAN TRIGGERED ===");
-      console.log("Scanned Result:", result);
-
-      setIsProcessing(true);
-      setLastScannedValue(result);
-
-      await makeAPICall(result);
-
-      setIsProcessing(false);
-    },
-    [isProcessing]
-  );
+    setIsProcessing(false);
+  }, []);
 
   const handleError = useCallback((error: string) => {
     console.error("Scanner Error:", error);
@@ -85,11 +75,12 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen h-screen w-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 overflow-hidden">
+      <Toaster position="top-center" richColors expand={true} />
       <QRScannerComponent onScan={handleScan} onError={handleError} />
 
       {/* Last Scanned Value Display */}
-      {lastScannedValue && (
+      {/* {lastScannedValue && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-white px-6 py-4 rounded-2xl shadow-2xl z-50 border-2 border-blue-500 max-w-md w-11/12">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -108,13 +99,13 @@ function App() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Processing Indicator */}
       {isProcessing && (
-        <div className="fixed top-5 right-5 bg-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 z-50 border-2 border-blue-200">
-          <div className="w-5 h-5 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-base font-bold text-blue-900">Processing...</span>
+        <div className="fixed top-4 right-4 bg-white px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 z-50 border-2 border-blue-200">
+          <div className="w-4 h-4 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold text-blue-900">Processing...</span>
         </div>
       )}
 

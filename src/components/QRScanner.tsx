@@ -15,7 +15,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const [selectedCamera, setSelectedCamera] = useState<string | undefined>("");
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(1);
-  const [isAutoFlash, setIsAutoFlash] = useState(true); // Track if auto-flash is enabled
+  const [isAutoFlash, setIsAutoFlash] = useState(true);
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
   const scanAttemptRef = useRef<number>(0);
@@ -263,23 +263,22 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   };
 
   return (
-    <div className="max-h-dvh bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full mx-auto" style={{ maxWidth: "420px" }}>
+    <div className="w-full h-screen flex items-center justify-center p-3 overflow-y-auto">
+      <div className="w-full mx-auto" style={{ maxWidth: "400px" }}>
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-32 h-32 aspect-square">
-            <img src={somfyLogo} alt="Somfy Logo" className="w-full h-full text-white object-fill " />
+        <div className="text-center mb-5">
+          <div className="inline-flex items-center justify-center w-32 mb-3">
+            <img src={somfyLogo} alt="Somfy Logo" className="w-full h-full text-white object-fill  " />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Scan QR Code</h1>
-          {/* <p className="text-gray-600 text-base mb-4">Scan any QR code instantly</p> */}
-          <div className="inline-flex items-center gap-2 bg-white px-5 py-2.5 rounded-full shadow-lg ">
-            <div className={`w-3 h-3  ${isScanning ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
-            <p className={`text-sm font-bold ${isScanning ? "text-green-600" : "text-gray-700"}`}>{isScanning ? "Scanning..." : "Ready"}</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">Scan QR Code</h1>
+          <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-lg ">
+            <div className={`w-2.5 h-2.5  ${isScanning ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
+            <p className={`text-xs font-bold ${isScanning ? "text-green-600" : "text-gray-700"}`}>{isScanning ? "Scanning..." : "Ready"}</p>
           </div>
 
           {/* Auto-zoom and Flash Indicators */}
           {isScanning && (
-            <div className="flex items-center justify-center gap-3 mt-3">
+            <div className="flex items-center justify-center gap-2 mt-2">
               {currentZoom > 1 && (
                 <div className="flex items-center gap-1 bg-blue-100 px-3 py-1 rounded-full">
                   <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,18 +315,18 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         </div>
 
         {/* Camera Container */}
-        <div className="bg-white rounded-3xl p-5 shadow-2xl border-2 border-gray-100">
+        <div className="bg-white rounded-2xl p-4 shadow-2xl border-2 border-gray-100 ">
           {/* Camera Frame */}
-          <div className="relative bg-black rounded-2xl overflow-hidden shadow-inner">
-            <video ref={videoRef} className="w-full aspect-square object-cover" style={{ maxHeight: "400px" }} />
+          <div className="relative bg-black rounded-xl overflow-hidden shadow-inner">
+            <video ref={videoRef} className="w-full lg:w-[80%] 2xl:w-full aspect-square object-cover" style={{ maxHeight: "350px" }} />
 
             {/* Scanning Overlay */}
             {isScanning && (
               <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-8 left-8 w-14 h-14 border-t-4 border-l-4 border-blue-400 rounded-tl-lg animate-pulse"></div>
-                <div className="absolute top-8 right-8 w-14 h-14 border-t-4 border-r-4 border-blue-400 rounded-tr-lg animate-pulse"></div>
-                <div className="absolute bottom-8 left-8 w-14 h-14 border-b-4 border-l-4 border-blue-400 rounded-bl-lg animate-pulse"></div>
-                <div className="absolute bottom-8 right-8 w-14 h-14 border-b-4 border-r-4 border-blue-400 rounded-br-lg animate-pulse"></div>
+                <div className="absolute top-6 left-6 w-12 h-12 border-t-4 border-l-4 border-blue-400 rounded-tl-lg animate-pulse"></div>
+                <div className="absolute top-6 right-6 w-12 h-12 border-t-4 border-r-4 border-blue-400 rounded-tr-lg animate-pulse"></div>
+                <div className="absolute bottom-6 left-6 w-12 h-12 border-b-4 border-l-4 border-blue-400 rounded-bl-lg animate-pulse"></div>
+                <div className="absolute bottom-6 right-6 w-12 h-12 border-b-4 border-r-4 border-blue-400 rounded-br-lg animate-pulse"></div>
               </div>
             )}
 
@@ -337,9 +336,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                 className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-gray-900 to-black bg-opacity-85 cursor-pointer transition-all hover:bg-opacity-90"
                 onClick={handleStartScanning}
               >
-                <div className="text-center p-6">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-800 rounded-2xl mb-4 shadow-xl">
-                    <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center p-4">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-800 rounded-xl mb-3 shadow-xl">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -349,8 +348,8 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
-                  <p className="text-lg font-bold text-white mb-1">Camera Ready</p>
-                  <p className="text-sm text-gray-400">Tap "Start Scan" to begin</p>
+                  <p className="text-base font-bold text-white mb-1">Camera Ready</p>
+                  <p className="text-xs text-gray-400">Tap "Start Scan" to begin</p>
                 </div>
               </div>
             )}
@@ -358,9 +357,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             {/* No Camera */}
             {!hasCamera && (
               <div className="absolute inset-0 flex items-center justify-center bg-red-50">
-                <div className="text-center p-6">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-2xl mb-4 shadow-lg">
-                    <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center p-4">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-xl mb-3 shadow-lg">
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -369,19 +368,19 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                       />
                     </svg>
                   </div>
-                  <p className="text-base font-bold text-red-800 mb-1">Camera Not Found</p>
-                  <p className="text-sm text-red-600">Please check permissions</p>
+                  <p className="text-sm font-bold text-red-800 mb-1">Camera Not Found</p>
+                  <p className="text-xs text-red-600">Please check permissions</p>
                 </div>
               </div>
             )}
           </div>
 
           {/* Button - Single Toggle Button */}
-          <div className="mt-5">
+          <div className="mt-4">
             <button
               onClick={handleToggleScanning}
               disabled={!hasCamera}
-              className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-md ${
+              className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm transition-all shadow-md ${
                 isScanning ? "bg-red-500 text-white hover:opacity-90" : "bg-buttonColor text-white "
               } active:scale-95 hover:shadow-lg ${!hasCamera ? "opacity-50 cursor-not-allowed" : ""}`}
             >
