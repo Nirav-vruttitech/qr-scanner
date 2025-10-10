@@ -15,6 +15,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const [selectedCamera, setSelectedCamera] = useState<string | undefined>("");
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(1);
+  const [isAutoFlash, setIsAutoFlash] = useState(true); // Track if auto-flash is enabled
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
   const scanAttemptRef = useRef<number>(0);
@@ -80,7 +81,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
   // Auto-flash functionality - turns on flash in low light conditions
   const toggleAutoFlash = async (enable: boolean) => {
-    if (!scannerRef.current) return;
+    if (!scannerRef.current || !isAutoFlash) return; // Check if auto-flash is allowed
 
     try {
       if (enable && !isFlashOn) {
@@ -94,6 +95,28 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
       }
     } catch (error) {
       console.error("❌ Error toggling flash:", error);
+    }
+  };
+
+  // Manual flash toggle by user
+  const handleManualFlashToggle = async () => {
+    if (!scannerRef.current) return;
+
+    try {
+      if (isFlashOn) {
+        // Turn off flash
+        await scannerRef.current.turnFlashOff();
+        setIsFlashOn(false);
+        setIsAutoFlash(false);
+      } else {
+        // Turn on flash manually
+        await scannerRef.current.turnFlashOn();
+        setIsFlashOn(true);
+        setIsAutoFlash(true);
+      }
+    } catch (error) {
+      console.error("❌ Error toggling flash manually:", error);
+      onError?.("Flash control not available on this device");
     }
   };
 
@@ -244,10 +267,10 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
       <div className="w-full mx-auto" style={{ maxWidth: "420px" }}>
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-32 h-32 mb-2">
-            <img src={somfyLogo} alt="Somfy Logo" className="w-32 h-32 text-white object-fill" />
+          <div className="inline-flex items-center justify-center w-32 h-32 aspect-square">
+            <img src={somfyLogo} alt="Somfy Logo" className="w-full h-full text-white object-fill " />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">QR Code Scanner</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Scan QR Code</h1>
           {/* <p className="text-gray-600 text-base mb-4">Scan any QR code instantly</p> */}
           <div className="inline-flex items-center gap-2 bg-white px-5 py-2.5 rounded-full shadow-lg ">
             <div className={`w-3 h-3  ${isScanning ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
@@ -270,18 +293,24 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                   <span className="text-xs font-semibold text-blue-700">{currentZoom.toFixed(1)}x</span>
                 </div>
               )}
-              {isFlashOn && (
-                <div className="flex items-center gap-1.5 bg-yellow-100 px-3 py-1.5 rounded-full transition-all">
-                  <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="text-xs font-semibold text-yellow-700">Flash</span>
-                </div>
-              )}
+              {/* Flash Toggle Button */}
+              <button
+                onClick={handleManualFlashToggle}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+                  isFlashOn ? "bg-yellow-100 hover:bg-yellow-200 active:scale-95" : "bg-gray-100 hover:bg-gray-200 active:scale-95"
+                }`}
+              >
+                <svg className={`w-4 h-4 ${isFlashOn ? "text-yellow-600" : "text-gray-600"}`} fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className={`text-xs font-semibold ${isFlashOn ? "text-yellow-700" : "text-gray-700"}`}>
+                  {isFlashOn ? "Flash OFF" : "Flash ON"}
+                </span>
+              </button>
             </div>
           )}
         </div>
@@ -304,7 +333,10 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
             {/* Inactive Overlay */}
             {!isScanning && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-gray-900 to-black bg-opacity-85">
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-gray-900 to-black bg-opacity-85 cursor-pointer transition-all hover:bg-opacity-90"
+                onClick={handleStartScanning}
+              >
                 <div className="text-center p-6">
                   <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-800 rounded-2xl mb-4 shadow-xl">
                     <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,7 +382,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
               onClick={handleToggleScanning}
               disabled={!hasCamera}
               className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-md ${
-                isScanning ? "bg-secondary text-white hover:opacity-90" : "bg-buttonColor text-white "
+                isScanning ? "bg-red-500 text-white hover:opacity-90" : "bg-buttonColor text-white "
               } active:scale-95 hover:shadow-lg ${!hasCamera ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isScanning ? "Stop Scan" : "Start Scan"}
