@@ -168,46 +168,51 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
     // Re-enable auto-zoom and restart it from the beginning
     setIsAutoZoomEnabled(true);
 
-    // Restart auto-zoom process
-    startAutoZoom();
+    // Restart auto-zoom process (disabled - manual zoom only)
+    // startAutoZoom();
   };
 
-  // Auto-adjust zoom based on scan attempts - Smooth gradual zoom
-  const startAutoZoom = () => {
-    // Clear any existing interval
-    if (zoomIntervalRef.current) {
-      clearInterval(zoomIntervalRef.current);
-    }
+  // Auto-adjust zoom based on scan attempts - Smooth gradual zoom (DISABLED - Manual zoom only)
+  // const startAutoZoom = () => {
+  //   // Auto-zoom disabled - users now control zoom manually via slider
+  //   return;
 
-    let zoomLevel = 1.0;
-    scanAttemptRef.current = 0;
+  //   /* Original auto-zoom code (disabled):
+  //   // Clear any existing interval
+  //   if (zoomIntervalRef.current) {
+  //     clearInterval(zoomIntervalRef.current);
+  //   }
 
-    // Gradually increase zoom every 2 seconds for smoother experience
-    zoomIntervalRef.current = setInterval(() => {
-      // Check the current state - if auto-zoom was disabled, stop
-      if (!isAutoZoomEnabled) {
-        if (zoomIntervalRef.current) {
-          clearInterval(zoomIntervalRef.current);
-          zoomIntervalRef.current = null;
-        }
-        return;
-      }
+  //   let zoomLevel = 1.0;
+  //   scanAttemptRef.current = 0;
 
-      scanAttemptRef.current += 1;
+  //   // Gradually increase zoom every 2 seconds for smoother experience
+  //   zoomIntervalRef.current = setInterval(() => {
+  //     // Check the current state - if auto-zoom was disabled, stop
+  //     if (!isAutoZoomEnabled) {
+  //       if (zoomIntervalRef.current) {
+  //         clearInterval(zoomIntervalRef.current);
+  //         zoomIntervalRef.current = null;
+  //       }
+  //       return;
+  //     }
 
-      // Smooth zoom progression: 1.0 -> 1.2 -> 1.4 -> 1.6 -> 1.8 -> 2.0 -> 2.2 -> 2.4 -> 2.6 -> 2.8 -> 3.0
-      if (scanAttemptRef.current <= 10) {
-        zoomLevel = 1.0 + scanAttemptRef.current * 0.2; // Increment by 0.2x each time
-        const cappedZoom = Math.min(zoomLevel, 3.0);
-        applyZoom(cappedZoom); // Cap at 3.0x and update currentZoom state
-      }
+  //     scanAttemptRef.current += 1;
 
-      // Turn on flash after 5 attempts (10 seconds) if still not detected
-      if (scanAttemptRef.current === 5) {
-        toggleAutoFlash(true);
-      }
-    }, 2000); // Check every 2 seconds for smoother progression
-  };
+  //     // Smooth zoom progression: 1.0 -> 1.2 -> 1.4 -> 1.6 -> 1.8 -> 2.0 -> 2.2 -> 2.4 -> 2.6 -> 2.8 -> 3.0
+  //     if (scanAttemptRef.current <= 10) {
+  //       zoomLevel = 1.0 + scanAttemptRef.current * 0.2; // Increment by 0.2x each time
+  //       const cappedZoom = Math.min(zoomLevel, 3.0);
+  //       applyZoom(cappedZoom); // Cap at 3.0x and update currentZoom state
+  //     }
+
+  //     // Turn on flash after 5 attempts (10 seconds) if still not detected
+  //     if (scanAttemptRef.current === 5) {
+  //       toggleAutoFlash(true);
+  //     }
+  //   }, 2000); // Check every 2 seconds for smoother progression
+  //   */
+  // };
 
   // Stop auto-zoom and reset
   const stopAutoZoom = () => {
@@ -299,9 +304,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         scannerRef.current
           .start()
           .then(() => {
-            // Start auto-zoom after scanner starts
-            startAutoZoom();
-            console.log("📷 Scanner started with auto-zoom enabled");
+            // Start auto-zoom after scanner starts (disabled - manual zoom only)
+            // startAutoZoom();
+            console.log("📷 Scanner started - manual zoom enabled");
           })
           .catch((err) => {
             console.error("Error starting scanner:", err);
@@ -340,7 +345,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   };
 
   return (
-    <div className="w-full h-screen flex items-center justify-center p-3 overflow-y-auto">
+    <div className="w-full h-[calc(100vh-64px)] flex items-center justify-center p-3 overflow-y-auto">
       <div className="w-full mx-auto" style={{ maxWidth: "400px" }}>
         {/* Header */}
         <div className="text-center mb-5">
@@ -354,7 +359,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
           </div>
 
           {/* Auto-zoom and Flash Indicators */}
-          {false && (
+          {/* {false && (
             <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
               {currentZoom > 2.0 && (
                 <button
@@ -392,8 +397,6 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                   <span className="text-xs font-semibold text-blue-700">{currentZoom.toFixed(1)}x</span>
                 </button>
               )}
-
-              {/* Flash Toggle Button */}
               <button
                 onClick={handleManualFlashToggle}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
@@ -412,7 +415,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                 </span>
               </button>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Camera Container */}
@@ -422,14 +425,14 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             <video ref={videoRef} className="w-full lg:w-[80%] 2xl:w-full aspect-square object-cover" style={{ maxHeight: "350px" }} />
 
             {/* Scanning Overlay */}
-            {isScanning && (
+            {/* {isScanning && (
               <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-6 left-6 w-12 h-12 border-t-4 border-l-4 border-blue-400 rounded-tl-lg animate-pulse"></div>
-                <div className="absolute top-6 right-6 w-12 h-12 border-t-4 border-r-4 border-blue-400 rounded-tr-lg animate-pulse"></div>
-                <div className="absolute bottom-6 left-6 w-12 h-12 border-b-4 border-l-4 border-blue-400 rounded-bl-lg animate-pulse"></div>
-                <div className="absolute bottom-6 right-6 w-12 h-12 border-b-4 border-r-4 border-blue-400 rounded-br-lg animate-pulse"></div>
+                <div className="absolute top-6 left-6 w-12 h-12 border-t-4 border-l-4 border-yellow-400 rounded-tl-lg animate-pulse"></div>
+                <div className="absolute top-6 right-6 w-12 h-12 border-t-4 border-r-4 border-yellow-400 rounded-tr-lg animate-pulse"></div>
+                <div className="absolute bottom-6 left-6 w-12 h-12 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg animate-pulse"></div>
+                <div className="absolute bottom-6 right-6 w-12 h-12 border-b-4 border-r-4 border-yellow-400 rounded-br-lg animate-pulse"></div>
               </div>
-            )}
+            )} */}
 
             {/* Inactive Overlay */}
             {!isScanning && (
@@ -485,11 +488,10 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                 <div
                   className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-lg z-10"
                   style={{
-                    left: `${(((isAutoZoomEnabled && isScanning ? currentZoom : manualZoom) - 1) / 2) * 100}%`,
+                    left: `${((manualZoom - 1) / 2) * 100}%`,
                   }}
                 >
-                  {(isAutoZoomEnabled && isScanning ? currentZoom : manualZoom).toFixed(1)}x
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-blue-600 rotate-45"></div>
+                  {manualZoom.toFixed(1)}x<div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-blue-600 rotate-45"></div>
                 </div>
               )}
 
@@ -498,7 +500,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                 min="1"
                 max="3"
                 step="0.1"
-                value={isAutoZoomEnabled && isScanning ? currentZoom : manualZoom}
+                value={manualZoom}
                 onChange={(e) => handleZoomSliderChange(parseFloat(e.target.value))}
                 onMouseDown={() => setShowZoomTooltip(true)}
                 onMouseUp={() => setShowZoomTooltip(false)}
@@ -506,9 +508,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
                 onTouchEnd={() => setShowZoomTooltip(false)}
                 className="w-full h-2 bg-gradient-to-r from-blue-200 to-blue-400 rounded-lg appearance-none cursor-pointer slider-thumb"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
-                    (((isAutoZoomEnabled && isScanning ? currentZoom : manualZoom) - 1) / 2) * 100
-                  }%, #dbeafe ${(((isAutoZoomEnabled && isScanning ? currentZoom : manualZoom) - 1) / 2) * 100}%, #dbeafe 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((manualZoom - 1) / 2) * 100}%, #dbeafe ${
+                    ((manualZoom - 1) / 2) * 100
+                  }%, #dbeafe 100%)`,
                 }}
               />
             </div>

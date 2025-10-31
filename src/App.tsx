@@ -29,24 +29,24 @@ function App() {
       console.log("PIN:", match.groups.pin);
 
       // // Copy PIN to clipboard and navigate to hostname in new tab
-      // try {
-      //   await navigator.clipboard.writeText(match.groups.pin);
-      //   console.log("📋 PIN copied to clipboard:", match.groups.pin);
+      try {
+        await navigator.clipboard.writeText(match.groups.pin);
+        console.log("📋 PIN copied to clipboard:", match.groups.pin);
 
-      //   // Show success toast
-      //   toast.success("QR Code Scanned!", {
-      //     description: `PIN copied to clipboard. Opening ${match.groups.hostname}...`,
-      //     duration: TOAST_DURATION,
-      //   });
-      // } catch (clipboardError) {
-      //   console.warn("⚠️ Failed to copy PIN to clipboard:", clipboardError);
+        // Show success toast
+        toast.success("QR Code Scanned!", {
+          description: `PIN copied to clipboard. Opening ${match.groups.hostname}...`,
+          duration: TOAST_DURATION,
+        });
+      } catch (clipboardError) {
+        console.warn("⚠️ Failed to copy PIN to clipboard:", clipboardError);
 
-      //   // Show warning toast
-      //   toast.warning("QR Code Scanned!", {
-      //     description: `Opening ${match.groups.hostname}... (Clipboard access denied)`,
-      //     duration: TOAST_DURATION,
-      //   });
-      // }
+        // Show warning toast
+        toast.warning("QR Code Scanned!", {
+          description: `Opening ${match.groups.hostname}... (Clipboard access denied)`,
+          duration: TOAST_DURATION,
+        });
+      }
 
       // Open hostname in new tab
       window.open(`https://${match.groups.hostname}/`, "_self");
