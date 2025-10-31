@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import QrScanner from "qr-scanner";
 import { useEffect, useRef, useState } from "react";
 import somfyLogo from "../assets/somfy_logo.svg";
@@ -16,10 +17,10 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const [hasFlash, setHasFlash] = useState(false);
   const [selectedCamera, setSelectedCamera] = useState<string | undefined>("");
   const [isFlashOn, setIsFlashOn] = useState(false);
-  const [currentZoom, setCurrentZoom] = useState(1);
+  const [, setCurrentZoom] = useState(1);
   const [manualZoom, setManualZoom] = useState(1);
   const [isAutoFlash, setIsAutoFlash] = useState(true);
-  const [isAutoZoomEnabled, setIsAutoZoomEnabled] = useState(true);
+  const [, setIsAutoZoomEnabled] = useState(true);
   const [showZoomTooltip, setShowZoomTooltip] = useState(false);
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
@@ -126,16 +127,16 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   };
 
   // Manual zoom control - User can increase zoom
-  const handleManualZoom = () => {
-    if (!isScanning) return;
+  // const handleManualZoom = () => {
+  //   if (!isScanning) return;
 
-    // Disable auto-zoom when user manually zooms
-    setIsAutoZoomEnabled(false);
+  //   // Disable auto-zoom when user manually zooms
+  //   setIsAutoZoomEnabled(false);
 
-    // Increase zoom by 0.5x steps, max 3.0x
-    const newZoom = Math.min(currentZoom + 0.5, 3.0);
-    applyZoom(newZoom);
-  };
+  //   // Increase zoom by 0.5x steps, max 3.0x
+  //   const newZoom = Math.min(currentZoom + 0.5, 3.0);
+  //   applyZoom(newZoom);
+  // };
 
   // Handle zoom slider change
   const handleZoomSliderChange = (value: number) => {
@@ -149,28 +150,28 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   };
 
   // Reset zoom to 1.0x and restart auto-zoom from beginning
-  const handleResetZoom = () => {
-    if (!isScanning) return;
+  // const handleResetZoom = () => {
+  //   if (!isScanning) return;
 
-    // Clear the existing zoom interval
-    if (zoomIntervalRef.current) {
-      clearInterval(zoomIntervalRef.current);
-      zoomIntervalRef.current = null;
-    }
+  //   // Clear the existing zoom interval
+  //   if (zoomIntervalRef.current) {
+  //     clearInterval(zoomIntervalRef.current);
+  //     zoomIntervalRef.current = null;
+  //   }
 
-    // Reset zoom to 1.0x
-    applyZoom(1.0);
-    setManualZoom(1.0);
+  //   // Reset zoom to 1.0x
+  //   applyZoom(1.0);
+  //   setManualZoom(1.0);
 
-    // Reset scan attempts counter
-    scanAttemptRef.current = 0;
+  //   // Reset scan attempts counter
+  //   scanAttemptRef.current = 0;
 
-    // Re-enable auto-zoom and restart it from the beginning
-    setIsAutoZoomEnabled(true);
+  //   // Re-enable auto-zoom and restart it from the beginning
+  //   setIsAutoZoomEnabled(true);
 
-    // Restart auto-zoom process (disabled - manual zoom only)
-    // startAutoZoom();
-  };
+  //   // Restart auto-zoom process (disabled - manual zoom only)
+  //   // startAutoZoom();
+  // };
 
   // Auto-adjust zoom based on scan attempts - Smooth gradual zoom (DISABLED - Manual zoom only)
   // const startAutoZoom = () => {
