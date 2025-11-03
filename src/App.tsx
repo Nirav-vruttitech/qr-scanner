@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Toaster, toast } from "sonner";
+import { BiSolidCopy, BiSolidCheckCircle } from "react-icons/bi";
 import QRScannerComponent from "./components/QRScanner";
 
 // QR Code format regex - defined outside component to avoid re-creation
@@ -7,53 +8,94 @@ const qrformat =
   /E:[ABCDEF0123456789]{12}%M:?[ABCDEF0123456789]{4}\$F:?[ABCDEF0123456789]{4}\$H:?(?<hostname>sfy_poe_[ABCDEF0123456789]{6})\$P:?(?<pin>[ABCDEF0123456789]{4})/;
 
 const TOAST_DURATION = 3000;
+
+interface ScanResult {
+  hostname: string;
+  pin: string;
+}
+
 function App() {
   // const [scanHistory, setScanHistory] = useState<ScanResult[]>([]);
+  // const [lastScannedValue, setLastScannedValue] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastScannedValue, setLastScannedValue] = useState<string>("");
-  console.log("lastScannedValue: ", lastScannedValue);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [copiedPin, setCopiedPin] = useState(false);
+
+  // Copy PIN to clipboard function
+  const copyPinToClipboard = useCallback(async (pin: string) => {
+    let success = false;
+
+    // Method 1: Modern Clipboard API
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(pin);
+        success = true;
+        console.log("PIN copied via Clipboard API:", pin);
+      } else {
+        throw new Error("Clipboard API not available");
+      }
+    } catch (error) {
+      console.warn("Clipboard API failed:", error);
+      // Method 2: execCommand fallback
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = pin;
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        textArea.style.fontSize = "16px";
+
+        document.body.appendChild(textArea);
+        textArea.select();
+        textArea.setSelectionRange(0, pin.length);
+
+        const result = document.execCommand("copy");
+        document.body.removeChild(textArea);
+
+        if (result) {
+          success = true;
+          console.log("PIN copied via execCommand:", pin);
+        }
+      } catch (error2) {
+        console.error("All copy methods failed:", error2);
+      }
+    }
+
+    if (success) {
+      setCopiedPin(true);
+      toast.success("PIN copied to clipboard!", { duration: 2000 });
+      setTimeout(() => setCopiedPin(false), 2000);
+    } else {
+      toast.error("Failed to copy PIN", { duration: 2000 });
+    }
+  }, []);
+
+  // Handle continue button click
+  const handleContinue = useCallback(() => {
+    if (scanResult) {
+      setScanResult(null);
+      window.open(`https://${scanResult.hostname}/`, "_self");
+    }
+  }, [scanResult]);
 
   const handleScan = useCallback(async (result: string) => {
-    console.log("=== QR SCAN TRIGGERED ===");
-    console.log("Scanned Result:", result);
-
-    setLastScannedValue(result);
     setIsProcessing(true);
 
     // Validate QR code against regex pattern
     const match = result.match(qrformat);
 
+    // Show modal instead of redirecting immediately
     if (match && match.groups && match.groups.hostname && match.groups.pin) {
-      console.log("✅ QR Code matched successfully!");
-      console.log("Hostname:", match.groups.hostname);
-      console.log("PIN:", match.groups.pin);
+      setScanResult({
+        hostname: match.groups.hostname,
+        pin: match.groups.pin,
+      });
 
-      // // Copy PIN to clipboard and navigate to hostname in new tab
-      try {
-        await navigator.clipboard.writeText(match.groups.pin);
-        console.log("📋 PIN copied to clipboard:", match.groups.pin);
-
-        // Show success toast
-        toast.success("QR Code Scanned!", {
-          description: `PIN copied to clipboard. Opening ${match.groups.hostname}...`,
-          duration: TOAST_DURATION,
-        });
-      } catch (clipboardError) {
-        console.warn("⚠️ Failed to copy PIN to clipboard:", clipboardError);
-
-        // Show warning toast
-        toast.warning("QR Code Scanned!", {
-          description: `Opening ${match.groups.hostname}... (Clipboard access denied)`,
-          duration: TOAST_DURATION,
-        });
-      }
-
-      // Open hostname in new tab
-      window.open(`https://${match.groups.hostname}/`, "_self");
+      toast.success("QR Code Scanned!", {
+        description: "Review the details below.",
+        duration: TOAST_DURATION,
+      });
     } else {
-      console.error("❌ QR Code does not match expected format");
-
-      // Show error toast
+      console.error("QR Code does not match expected format");
       toast.error("Invalid QR Code", {
         description: "Please scan a valid Somfy PoE motor QR code.",
         duration: TOAST_DURATION,
@@ -73,27 +115,67 @@ function App() {
       <Toaster position="top-center" richColors expand={true} />
       <QRScannerComponent onScan={handleScan} onError={handleError} />
 
-      {/* Last Scanned Value Display */}
-      {/* {lastScannedValue && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-white px-6 py-4 rounded-2xl shadow-2xl z-50 border-2 border-blue-500 max-w-md w-11/12">
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+      {/* Scan Result Modal */}
+      {scanResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in fade-in duration-300">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <BiSolidCheckCircle className="w-6 h-6 text-white" />
+                <h2 className="text-xl font-bold text-white">QR Code Scanned!</h2>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-gray-700 mb-1">Scanned QR Code:</h3>
-              <p className="font-mono text-base font-semibold text-blue-600 break-all">{lastScannedValue}</p>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Hostname Section */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Hostname</label>
+                <div className="bg-gray-50 rounded-lg p-3 border-2 border-gray-200">
+                  <p className="font-mono text-sm font-bold text-gray-900 break-all">{scanResult.hostname}</p>
+                </div>
+              </div>
+
+              {/* PIN Section */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">PIN</label>
+                <div className="flex gap-2 items-stretch">
+                  <div className="flex-1 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-1.5 border-2 border-yellow-200">
+                    <p className="font-mono text-lg font-bold text-gray-900">{scanResult.pin}</p>
+                  </div>
+                  <button
+                    onClick={() => copyPinToClipboard(scanResult.pin)}
+                    className={`px-4 rounded-lg font-semibold transition-all active:scale-95 ${
+                      copiedPin ? "bg-green-500 text-white hover:bg-green-600" : "bg-blue-500 text-white hover:bg-blue-600"
+                    }`}
+                    title="Copy PIN to clipboard"
+                  >
+                    {copiedPin ? <BiSolidCheckCircle className="w-5 h-5" /> : <BiSolidCopy className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Click to copy PIN to clipboard</p>
+              </div>
             </div>
-            <button onClick={() => setLastScannedValue("")} className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex gap-3 border-t-2 border-gray-100">
+              <button
+                onClick={() => setScanResult(null)}
+                className="flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm text-gray-700 bg-gray-200 hover:bg-gray-300 transition-all active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleContinue}
+                className="flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-all active:scale-95 shadow-md"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
-      )} */}
+      )}
 
       {/* Processing Indicator */}
       {isProcessing && (
@@ -102,74 +184,6 @@ function App() {
           <span className="text-sm font-bold text-blue-900">Processing...</span>
         </div>
       )}
-
-      {/* Scan History - Clean Design */}
-      {/* {scanHistory.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-64 overflow-hidden z-40 border-t-2 border-gray-200">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Scan History</h3>
-                <p className="text-xs text-blue-100">
-                  {scanHistory.length} recent scan{scanHistory.length > 1 ? "s" : ""}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-y-auto max-h-44 p-3 bg-gray-50">
-            <div className="space-y-2">
-              {scanHistory.map((scan, index) => (
-                <div
-                  key={index}
-                  className={`p-2.5 rounded-lg border transition-all ${
-                    scan.status === "success" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            scan.status === "success" ? "bg-green-500" : "bg-red-500"
-                          }`}
-                        >
-                          {scan.status === "success" ? (
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="text-xs font-medium text-gray-500">{scan.timestamp}</span>
-                      </div>
-                      <p className="font-mono text-xs font-semibold text-gray-800 truncate">{scan.data}</p>
-                      {scan.message && (
-                        <p className={`text-xs mt-0.5 ${scan.status === "success" ? "text-green-700" : "text-red-700"}`}>{scan.message}</p>
-                      )}
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${
-                        scan.status === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                      }`}
-                    >
-                      {scan.status === "success" ? "✓" : "✗"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )} */}
     </div>
   );
 }

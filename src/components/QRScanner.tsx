@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import QrScanner from "qr-scanner";
 import { useEffect, useRef, useState } from "react";
-import somfyLogo from "../assets/somfy_logo.svg";
 import { BiSolidTorch } from "react-icons/bi";
+import somfyLogo from "../assets/somfy_logo.svg";
 
 interface QRScannerProps {
   onScan: (result: string) => void;
@@ -26,14 +27,11 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   const lastScanTimeRef = useRef<number>(0);
   const scanAttemptRef = useRef<number>(0);
   const zoomIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // const videoStreamRef = useRef<MediaStream | null>(null);
 
   // Function to fetch and select the best camera
   const fetchBestCamera = async () => {
     try {
       const cameras = await QrScanner.listCameras(true);
-      console.log("📷 Available cameras:", cameras);
-
       // Filter cameras that include "back" in the label (rear cameras)
       const backCameras = cameras.filter((camera) => camera.label.toLowerCase().includes("back"));
 
@@ -53,13 +51,13 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
       // Select the best camera (first sorted back camera or fallback to environment)
       if (sortedCameras.length > 0) {
         setSelectedCamera(sortedCameras[0].id);
-        console.log("✅ Selected camera:", sortedCameras[0].label);
+        console.log("Selected camera:", sortedCameras[0].label);
       } else {
         setSelectedCamera("environment"); // Fallback to default back camera
-        console.log("⚠️ No back camera found, using 'environment' as fallback");
+        console.log("No back camera found, using 'environment' as fallback");
       }
     } catch (error) {
-      console.error("❌ Error fetching cameras:", error);
+      console.error("Error fetching cameras:", error);
       setSelectedCamera("environment");
     }
   };
@@ -78,9 +76,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
           advanced: [{ zoom: zoomLevel } as any],
         });
         setCurrentZoom(zoomLevel);
-        console.log(`🔍 Zoom applied: ${zoomLevel}x`);
+        console.log(`Zoom applied: ${zoomLevel}x`);
       } catch (error) {
-        console.error("❌ Error applying zoom:", error);
+        console.error("Error applying zoom:", error);
       }
     }
   };
@@ -100,7 +98,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         console.log("💡 Flash turned OFF");
       }
     } catch (error) {
-      console.error("❌ Error toggling flash:", error);
+      console.error("Error toggling flash:", error);
     }
   };
 
@@ -121,22 +119,10 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         setIsAutoFlash(true);
       }
     } catch (error) {
-      console.error("❌ Error toggling flash manually:", error);
+      console.error("Error toggling flash manually:", error);
       onError?.("Flash control not available on this device");
     }
   };
-
-  // Manual zoom control - User can increase zoom
-  // const handleManualZoom = () => {
-  //   if (!isScanning) return;
-
-  //   // Disable auto-zoom when user manually zooms
-  //   setIsAutoZoomEnabled(false);
-
-  //   // Increase zoom by 0.5x steps, max 3.0x
-  //   const newZoom = Math.min(currentZoom + 0.5, 3.0);
-  //   applyZoom(newZoom);
-  // };
 
   // Handle zoom slider change
   const handleZoomSliderChange = (value: number) => {
@@ -148,72 +134,6 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
       applyZoom(value);
     }
   };
-
-  // Reset zoom to 1.0x and restart auto-zoom from beginning
-  // const handleResetZoom = () => {
-  //   if (!isScanning) return;
-
-  //   // Clear the existing zoom interval
-  //   if (zoomIntervalRef.current) {
-  //     clearInterval(zoomIntervalRef.current);
-  //     zoomIntervalRef.current = null;
-  //   }
-
-  //   // Reset zoom to 1.0x
-  //   applyZoom(1.0);
-  //   setManualZoom(1.0);
-
-  //   // Reset scan attempts counter
-  //   scanAttemptRef.current = 0;
-
-  //   // Re-enable auto-zoom and restart it from the beginning
-  //   setIsAutoZoomEnabled(true);
-
-  //   // Restart auto-zoom process (disabled - manual zoom only)
-  //   // startAutoZoom();
-  // };
-
-  // Auto-adjust zoom based on scan attempts - Smooth gradual zoom (DISABLED - Manual zoom only)
-  // const startAutoZoom = () => {
-  //   // Auto-zoom disabled - users now control zoom manually via slider
-  //   return;
-
-  //   /* Original auto-zoom code (disabled):
-  //   // Clear any existing interval
-  //   if (zoomIntervalRef.current) {
-  //     clearInterval(zoomIntervalRef.current);
-  //   }
-
-  //   let zoomLevel = 1.0;
-  //   scanAttemptRef.current = 0;
-
-  //   // Gradually increase zoom every 2 seconds for smoother experience
-  //   zoomIntervalRef.current = setInterval(() => {
-  //     // Check the current state - if auto-zoom was disabled, stop
-  //     if (!isAutoZoomEnabled) {
-  //       if (zoomIntervalRef.current) {
-  //         clearInterval(zoomIntervalRef.current);
-  //         zoomIntervalRef.current = null;
-  //       }
-  //       return;
-  //     }
-
-  //     scanAttemptRef.current += 1;
-
-  //     // Smooth zoom progression: 1.0 -> 1.2 -> 1.4 -> 1.6 -> 1.8 -> 2.0 -> 2.2 -> 2.4 -> 2.6 -> 2.8 -> 3.0
-  //     if (scanAttemptRef.current <= 10) {
-  //       zoomLevel = 1.0 + scanAttemptRef.current * 0.2; // Increment by 0.2x each time
-  //       const cappedZoom = Math.min(zoomLevel, 3.0);
-  //       applyZoom(cappedZoom); // Cap at 3.0x and update currentZoom state
-  //     }
-
-  //     // Turn on flash after 5 attempts (10 seconds) if still not detected
-  //     if (scanAttemptRef.current === 5) {
-  //       toggleAutoFlash(true);
-  //     }
-  //   }, 2000); // Check every 2 seconds for smoother progression
-  //   */
-  // };
 
   // Stop auto-zoom and reset
   const stopAutoZoom = () => {
@@ -241,15 +161,12 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
         const now = Date.now();
         const timeSinceLastScan = now - lastScanTimeRef.current;
 
-        console.log("🔍 QR Scanner callback triggered");
-        console.log("Detected data:", result.data);
-
         // Prevent duplicate scans within 2 seconds
         if (result.data !== lastScanRef.current || timeSinceLastScan > 2000) {
           lastScanRef.current = result.data;
           lastScanTimeRef.current = now;
 
-          console.log("✅ QR Code Successfully Detected:", result.data);
+          console.log("QR Code Successfully Detected:", result.data);
 
           // Stop auto-zoom when QR is detected
           stopAutoZoom();
@@ -358,65 +275,6 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             <div className={`w-2.5 h-2.5  ${isScanning ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
             <p className={`text-xs font-bold ${isScanning ? "text-green-600" : "text-gray-700"}`}>{isScanning ? "Scanning..." : "Ready"}</p>
           </div>
-
-          {/* Auto-zoom and Flash Indicators */}
-          {/* {false && (
-            <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-              {currentZoom > 2.0 && (
-                <button
-                  onClick={handleResetZoom}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all bg-yellow-100 hover:bg-yellow-200 active:scale-95"
-                >
-                  <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  <span className="text-xs font-semibold text-yellow-700">Reset Zoom</span>
-                </button>
-              )}
-
-              {currentZoom > 1 && (
-                <button
-                  onClick={handleManualZoom}
-                  disabled={currentZoom >= 3.0}
-                  className={`flex items-center gap-1 bg-blue-100 px-3 py-1 rounded-full transition-all hover:bg-blue-200 active:scale-95 ${
-                    currentZoom >= 3.0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                    />
-                  </svg>
-                  <span className="text-xs font-semibold text-blue-700">{currentZoom.toFixed(1)}x</span>
-                </button>
-              )}
-              <button
-                onClick={handleManualFlashToggle}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
-                  isFlashOn ? "bg-yellow-100 hover:bg-yellow-200 active:scale-95" : "bg-gray-100 hover:bg-gray-200 active:scale-95"
-                }`}
-              >
-                <svg className={`w-4 h-4 ${isFlashOn ? "text-yellow-600" : "text-gray-600"}`} fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className={`text-xs font-semibold ${isFlashOn ? "text-yellow-700" : "text-gray-700"}`}>
-                  {isFlashOn ? "Flash OFF" : "Flash ON"}
-                </span>
-              </button>
-            </div>
-          )} */}
         </div>
 
         {/* Camera Container */}
@@ -424,16 +282,6 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
           {/* Camera Frame */}
           <div className="relative bg-black rounded-xl overflow-hidden shadow-inner">
             <video ref={videoRef} className="w-full lg:w-[80%] 2xl:w-full aspect-square object-cover" style={{ maxHeight: "350px" }} />
-
-            {/* Scanning Overlay */}
-            {/* {isScanning && (
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-6 left-6 w-12 h-12 border-t-4 border-l-4 border-yellow-400 rounded-tl-lg animate-pulse"></div>
-                <div className="absolute top-6 right-6 w-12 h-12 border-t-4 border-r-4 border-yellow-400 rounded-tr-lg animate-pulse"></div>
-                <div className="absolute bottom-6 left-6 w-12 h-12 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg animate-pulse"></div>
-                <div className="absolute bottom-6 right-6 w-12 h-12 border-b-4 border-r-4 border-yellow-400 rounded-br-lg animate-pulse"></div>
-              </div>
-            )} */}
 
             {/* Inactive Overlay */}
             {!isScanning && (
