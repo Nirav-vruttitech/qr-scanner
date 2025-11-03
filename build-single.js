@@ -56,17 +56,41 @@ if (mainJsFile) {
     // Create a data URL from the worker content
     const workerDataUrl = `data:application/javascript;base64,${Buffer.from(workerJs).toString("base64")}`;
 
-    // Replace all references to the worker file with the data URL
-    mainJs = mainJs.replace(new RegExp(workerJsFile, "g"), workerDataUrl);
+    console.log("🔧 Worker inlining:");
+    console.log("   Original worker file:", workerJsFile);
+    console.log("   Data URL length:", workerDataUrl.length);
+
+    // Replace multiple possible patterns of worker file references
+    // Pattern 1: Direct filename with ./ prefix
+    const pattern1 = new RegExp(`\\./${workerJsFile}`, "g");
+    const count1 = (mainJs.match(pattern1) || []).length;
+    mainJs = mainJs.replace(pattern1, workerDataUrl);
+    if (count1 > 0) console.log(`   ✓ Replaced ${count1} references with ./${workerJsFile}`);
+
+    // Pattern 2: Filename without prefix
+    const pattern2 = new RegExp(`(['\"])${workerJsFile}(['\"])`, "g");
+    const count2 = (mainJs.match(pattern2) || []).length;
+    mainJs = mainJs.replace(pattern2, `$1${workerDataUrl}$2`);
+    if (count2 > 0) console.log(`   ✓ Replaced ${count2} references with quoted ${workerJsFile}`);
+
+    // Pattern 3: URL-encoded or with URL path
+    const pattern3 = new RegExp(`assets/${workerJsFile}`, "g");
+    const count3 = (mainJs.match(pattern3) || []).length;
+    mainJs = mainJs.replace(pattern3, workerDataUrl);
+    if (count3 > 0) console.log(`   ✓ Replaced ${count3} references with assets/${workerJsFile}`);
+
+    console.log("   Total patterns checked: 3");
   }
 
   // Replace logo file references to use the renamed logo filename
   if (logoFile) {
     const logoFileName = "somfy_logo.svg";
     mainJs = mainJs.replace(new RegExp(logoFile, "g"), logoFileName);
+    console.log(`🎨 Logo references updated: ${logoFile} → ${logoFileName}`);
   }
 
   fs.writeFileSync(path.join(finalDir, "main.js"), mainJs);
+  console.log("✓ main.js created with inlined worker");
 }
 
 // 7️⃣ Copy logo SVG

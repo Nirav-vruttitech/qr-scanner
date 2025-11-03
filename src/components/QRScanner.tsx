@@ -153,7 +153,12 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   }, []);
 
   useEffect(() => {
-    if (!videoRef.current || !selectedCamera) return;
+    if (!videoRef.current || !selectedCamera) {
+      console.log("⏳ Waiting for video ref or camera selection...", { hasVideoRef: !!videoRef.current, selectedCamera });
+      return;
+    }
+
+    console.log("🎬 Initializing QrScanner with camera:", selectedCamera);
 
     const qrScanner = new QrScanner(
       videoRef.current,
@@ -171,7 +176,6 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
           // Stop auto-zoom when QR is detected
           stopAutoZoom();
 
-          // alert(`✅ Successfully Scanned!\n\nQR Code Value:\n${result.data}`);
           onScan(result.data);
           setIsScanning(false);
         } else {
@@ -188,28 +192,33 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
 
     scannerRef.current = qrScanner;
 
-    QrScanner.hasCamera().then((hasCamera) => {
-      setHasCamera(hasCamera);
-      if (!hasCamera) {
-        if (onError) {
+    QrScanner.hasCamera()
+      .then((hasCamera) => {
+        setHasCamera(hasCamera);
+        console.log("✓ Camera availability check:", hasCamera ? "Camera found" : "No camera found");
+        if (!hasCamera && onError) {
           onError("No camera found on this device");
         }
-      }
-    });
+      })
+      .catch((err) => {
+        console.error("❌ Camera check error:", err);
+        setHasCamera(false);
+      });
 
     // Check if flash is available
     qrScanner
       .hasFlash()
       .then((hasFlashSupport) => {
         setHasFlash(hasFlashSupport);
-        console.log("💡 Flash support:", hasFlashSupport);
+        console.log("💡 Flash support:", hasFlashSupport ? "Available" : "Not available");
       })
-      .catch(() => {
+      .catch((err) => {
         setHasFlash(false);
-        console.log("💡 Flash not supported");
+        console.log("💡 Flash check error:", err);
       });
 
     return () => {
+      console.log("🛑 Cleaning up QrScanner instance");
       qrScanner.stop();
       qrScanner.destroy();
     };
@@ -219,15 +228,15 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   useEffect(() => {
     if (scannerRef.current) {
       if (isScanning) {
+        console.log("▶️ Starting QR scanner...");
         scannerRef.current
           .start()
           .then(() => {
-            // Start auto-zoom after scanner starts (disabled - manual zoom only)
-            // startAutoZoom();
-            console.log("📷 Scanner started - manual zoom enabled");
+            console.log("✓ Scanner started successfully");
+            console.log("📷 Ready to scan QR codes...");
           })
           .catch((err) => {
-            console.error("Error starting scanner:", err);
+            console.error("❌ Error starting scanner:", err);
             const errorMessage = "Failed to start camera. Please check permissions.";
 
             if (onError) {
@@ -236,6 +245,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             setIsScanning(false);
           });
       } else {
+        console.log("⏹️ Stopping QR scanner");
         scannerRef.current.stop();
         // Stop auto-zoom when scanner stops
         stopAutoZoom();
