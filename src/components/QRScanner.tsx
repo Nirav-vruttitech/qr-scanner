@@ -3,8 +3,8 @@
 import QrScanner from "qr-scanner";
 import { useEffect, useRef, useState } from "react";
 import { BiSolidTorch } from "react-icons/bi";
-import somfyLogo from "../assets/somfy_logo.svg";
 import POELogo from "../assets/poelogo.png";
+import somfyLogo from "../assets/somfy_logo.svg";
 
 interface QRScannerProps {
   onScan: (result: string) => void;
@@ -392,18 +392,17 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             </button>
 
             {/* Flash/Torch Button - Only show if flash is available */}
-            {hasFlash && (
-              <button
-                onClick={handleManualFlashToggle}
-                disabled={!hasCamera || !isScanning}
-                className={`p-2.5 rounded-xl font-semibold text-sm transition-all shadow-md ${
-                  isFlashOn ? "bg-yellow-500 text-white hover:opacity-90" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                } active:scale-95 hover:shadow-lg ${!hasCamera || !isScanning ? "opacity-50 cursor-not-allowed" : ""}`}
-                title={isFlashOn ? "Turn Flash Off" : "Turn Flash On"}
-              >
-                <BiSolidTorch size={20} />
-              </button>
-            )}
+
+            <button
+              onClick={handleManualFlashToggle}
+              disabled={!hasCamera || !isScanning}
+              className={`p-2.5 rounded-xl font-semibold text-sm transition-all shadow-md ${
+                isFlashOn ? "bg-yellow-500 text-white hover:opacity-90" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              } active:scale-95 hover:shadow-lg ${!hasCamera || !isScanning ? "opacity-50 cursor-not-allowed" : ""}`}
+              title={isFlashOn ? "Turn Flash Off" : "Turn Flash On"}
+            >
+              <BiSolidTorch size={20} />
+            </button>
           </div>
         </div>
       </div>
