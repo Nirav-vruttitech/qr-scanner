@@ -274,7 +274,7 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
   };
 
   return (
-    <div className="w-full h-[calc(100vh-64px)] flex items-center justify-center p-3 overflow-y-auto">
+    <div className="w-full h-dvh flex items-center justify-center p-3 overflow-y-auto">
       <div className="w-full mx-auto" style={{ maxWidth: "400px" }}>
         {/* Header */}
         <div className="text-center mb-5">
