@@ -384,9 +384,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             <button
               onClick={handleToggleScanning}
               disabled={!hasCamera}
-              className={`${hasFlash ? "flex-1" : "w-full"} py-2.5 px-4 rounded-xl font-semibold text-sm transition-all shadow-md ${
-                isScanning ? "bg-red-500 text-white hover:opacity-90" : "bg-buttonColor text-white "
-              } active:scale-95 hover:shadow-lg ${!hasCamera ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`${hasFlash ? "flex-1" : "w-full"} py-2.5 px-4 rounded-xl font-semibold text-sm shadow-md ${
+                isScanning ? "bg-red-500 text-white" : "bg-buttonColor text-white"
+              } ${!hasCamera ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isScanning ? "Stop Scan" : "Start Scan"}
             </button>
@@ -396,9 +396,9 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
             <button
               onClick={handleManualFlashToggle}
               disabled={!hasCamera || !isScanning}
-              className={`p-2.5 rounded-xl font-semibold text-sm transition-all shadow-md ${
-                isFlashOn ? "bg-yellow-500 text-white hover:opacity-90" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-              } active:scale-95 hover:shadow-lg ${!hasCamera || !isScanning ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`p-2.5 rounded-xl font-semibold text-sm shadow-md ${isFlashOn ? "bg-yellow-500 text-white" : "bg-gray-200 text-gray-600"} ${
+                !hasCamera || !isScanning ? "opacity-50 cursor-not-allowed" : ""
+              }`}
               title={isFlashOn ? "Turn Flash Off" : "Turn Flash On"}
             >
               <BiSolidTorch size={20} />
