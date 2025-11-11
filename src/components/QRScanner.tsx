@@ -4,6 +4,7 @@ import QrScanner from "qr-scanner";
 import { useEffect, useRef, useState } from "react";
 import { BiSolidTorch } from "react-icons/bi";
 import somfyLogo from "../assets/somfy_logo.svg";
+import POELogo from "../assets/poelogo.png";
 
 interface QRScannerProps {
   onScan: (result: string) => void;
@@ -280,7 +281,10 @@ const QRScannerComponent = ({ onScan, onError }: QRScannerProps) => {
           <div className="inline-flex items-center justify-center w-32 mb-3">
             <img src={somfyLogo} alt="Somfy Logo" className="w-full h-full text-white object-fill  " />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">Scan QR Code</h1>
+          <div className="flex items-center justify-center">
+            <img src={POELogo} alt="POE Logo" className="h-7 w-10 object-contain aspect-square " />
+            <h1 className="text-2xl font-bold text-gray-900 mb-3 mt-2">Limit Setting</h1>
+          </div>
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-lg ">
             <div className={`w-2.5 h-2.5  ${isScanning ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
             <p className={`text-xs font-bold ${isScanning ? "text-green-600" : "text-gray-700"}`}>{isScanning ? "Scanning..." : "Ready"}</p>

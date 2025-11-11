@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useCallback, useState } from "react";
+import { BiSolidCheckCircle } from "react-icons/bi";
 import { Toaster, toast } from "sonner";
-import { BiSolidCopy, BiSolidCheckCircle } from "react-icons/bi";
 import QRScannerComponent from "./components/QRScanner";
 
 // QR Code format regex - defined outside component to avoid re-creation
@@ -19,7 +20,7 @@ function App() {
   // const [lastScannedValue, setLastScannedValue] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [copiedPin, setCopiedPin] = useState(false);
+  const [, setCopiedPin] = useState(false);
 
   // Copy PIN to clipboard function
   const copyPinToClipboard = useCallback(async (pin: string) => {
@@ -62,10 +63,10 @@ function App() {
 
     if (success) {
       setCopiedPin(true);
-      toast.success("PIN copied to clipboard!", { duration: 2000 });
-      setTimeout(() => setCopiedPin(false), 2000);
+      toast.success("PIN copied to clipboard!", { duration: 1000 });
+      setTimeout(() => setCopiedPin(false), 1000);
     } else {
-      toast.error("Failed to copy PIN", { duration: 2000 });
+      toast.error("Failed to copy PIN", { duration: 1000 });
     }
   }, []);
 
@@ -144,7 +145,7 @@ function App() {
                   <div className="flex-1 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-1.5 border-2 border-yellow-200">
                     <p className="font-mono text-lg font-bold text-gray-900">{scanResult.pin}</p>
                   </div>
-                  <button
+                  {/* <button
                     onClick={() => copyPinToClipboard(scanResult.pin)}
                     className={`px-4 rounded-lg font-semibold transition-all active:scale-95 ${
                       copiedPin ? "bg-green-500 text-white hover:bg-green-600" : "bg-blue-500 text-white hover:bg-blue-600"
@@ -152,9 +153,9 @@ function App() {
                     title="Copy PIN to clipboard"
                   >
                     {copiedPin ? <BiSolidCheckCircle className="w-5 h-5" /> : <BiSolidCopy className="w-5 h-5" />}
-                  </button>
+                  </button> */}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Click to copy PIN to clipboard</p>
+                <p className="text-xs text-gray-500 mt-2">You will need to paste this pin on the next screen.</p>
               </div>
             </div>
 
@@ -167,10 +168,13 @@ function App() {
                 Cancel
               </button>
               <button
-                onClick={handleContinue}
-                className="flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-all active:scale-95 shadow-md"
+                onClick={async () => {
+                  await copyPinToClipboard(scanResult.pin);
+                  handleContinue();
+                }}
+                className="flex-1 py-2.5 px-2 rounded-lg font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-all active:scale-95 shadow-md text-center"
               >
-                Continue
+                Copy Pin & <span className="mr-1.5">Continue</span>
               </button>
             </div>
           </div>

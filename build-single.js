@@ -30,6 +30,7 @@ const mainJsFile = assetFiles.find((f) => f.startsWith("index-") && f.endsWith("
 const cssFile = assetFiles.find((f) => f.startsWith("index-") && f.endsWith(".css"));
 const workerJsFile = assetFiles.find((f) => f.includes("qr-scanner-worker") && f.endsWith(".js"));
 const logoFile = assetFiles.find((f) => f.includes("somfy_logo") && f.endsWith(".svg"));
+const POELogo = assetFiles.find((f) => f.includes("poelogo") && f.endsWith(".png"));
 
 console.log("📦 Found files:");
 console.log("  - Main JS:", mainJsFile);
