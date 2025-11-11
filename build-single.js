@@ -37,6 +37,7 @@ console.log("  - Main JS:", mainJsFile);
 console.log("  - CSS:", cssFile);
 console.log("  - Worker JS:", workerJsFile);
 console.log("  - Logo:", logoFile);
+console.log("  - POE Logo:", POELogo);
 
 // 4️⃣ Copy HTML
 fs.copyFileSync(htmlFile, path.join(finalDir, "index.html"));
@@ -90,6 +91,13 @@ if (mainJsFile) {
     console.log(`🎨 Logo references updated: ${logoFile} → ${logoFileName}`);
   }
 
+  // Replace POE logo file references to use the renamed POE logo filename
+  if (POELogo) {
+    const poeLogoFileName = "poe_logo.png";
+    mainJs = mainJs.replace(new RegExp(POELogo, "g"), poeLogoFileName);
+    console.log(`🎨 POE Logo references updated: ${POELogo} → ${poeLogoFileName}`);
+  }
+
   fs.writeFileSync(path.join(finalDir, "main.js"), mainJs);
   console.log("✓ main.js created with inlined worker");
 }
@@ -98,6 +106,12 @@ if (mainJsFile) {
 if (logoFile) {
   const logoFileName = "somfy_logo.svg";
   fs.copyFileSync(path.join(assetsDir, logoFile), path.join(finalDir, logoFileName));
+}
+
+// 7️⃣.1 Copy POE logo PNG
+if (POELogo) {
+  const poeLogoFileName = "poe_logo.png";
+  fs.copyFileSync(path.join(assetsDir, POELogo), path.join(finalDir, poeLogoFileName));
 }
 
 // 8️⃣ Fix HTML paths to reference the renamed files
@@ -114,6 +128,11 @@ if (logoFile) {
   html = html.replace(new RegExp(`./assets/${logoFile}`, "g"), "./somfy_logo.svg");
 }
 
+// Replace POE logo reference if it exists in HTML
+if (POELogo) {
+  html = html.replace(new RegExp(`./assets/${POELogo}`, "g"), "./poe_logo.png");
+}
+
 fs.writeFileSync(path.join(finalDir, "index.html"), html);
 
 // 9️⃣ Copy vite.svg favicon if exists
@@ -127,4 +146,5 @@ console.log("  - index.html");
 console.log("  - style.css");
 console.log("  - main.js");
 if (logoFile) console.log("  - somfy_logo.svg");
+if (POELogo) console.log("  - poe_logo.png");
 console.log("\n🚀 Double-click index.html to open it in your browser!");
