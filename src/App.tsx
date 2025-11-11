@@ -112,7 +112,7 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen h-screen w-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 overflow-hidden select-none">
+    <div className="min-h-dvh h-dvh w-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 overflow-hidden select-none">
       <Toaster position="top-center" richColors expand={true} />
       <QRScannerComponent onScan={handleScan} onError={handleError} />
 
